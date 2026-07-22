@@ -8,6 +8,7 @@ export default withSidebar(
     title: '航迹 · 开发文档',
     description: '航迹整合包开发文档',
     srcDir: 'docs',
+    base: process.env.NODE_ENV === 'production' ? '/BTW-Document/' : '/',
 
     markdown: {
       math: false,
@@ -36,8 +37,28 @@ export default withSidebar(
       ],
 
       socialLinks: [
-        { icon: 'github', link: 'https://github.com/vuejs/vitepress' }
-      ]
+        { icon: 'github', link: 'https://github.com/TeamAurorisla/BTW-Document' }
+      ],
+
+      search: {
+        provider: 'local',
+        options: {
+          translations: {
+            button: {
+              buttonText: '搜索文档',
+              buttonAriaLabel: '搜索文档'
+            },
+            modal: {
+              noResultsText: '无法找到相关结果',
+              resetButtonTitle: '清除查询条件',
+              footer: {
+                selectText: '选择',
+                navigateText: '切换'
+              }
+            }
+          }
+        }
+      }
 
       // sidebar 由 vitepress-sidebar 自动生成
     }

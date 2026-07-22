@@ -8,8 +8,8 @@ hero:
   tagline: 
   actions:
     - theme: brand
-      text: LaTeX 示例
-      link: /examples/latex
+      text: 项目概览
+      link: /projects/
     - theme: alt
       text: Mermaid 示例
       link: /examples/mermaid

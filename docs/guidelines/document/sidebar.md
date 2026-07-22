@@ -2,7 +2,7 @@
 order: 1
 ---
 
-# 边栏
+# 边栏排序与标题
 
 文档的边栏使用插件 [`VitePress Sidebar`](https://vitepress-sidebar.cdget.com/zhHans/)，实现了全面高效的自动侧边栏配置。插件的核心逻辑是通过扫描 `docs/` 的目录结构，自动生成侧边栏。文件名便是折叠分组，而 markdown 文件则是分组下的条目。具体配置位于 `.vitepress/config.mts` 的 `withSidebar` 参数中。
 
