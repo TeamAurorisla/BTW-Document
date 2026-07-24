@@ -31,9 +31,7 @@ export default withSidebar(
       // https://vitepress.dev/reference/default-theme-config
       nav: [
         { text: 'Home', link: '/' },
-        { text: '示例', link: '/examples/' },
-        { text: 'LaTeX', link: '/examples/latex' },
-        { text: 'Mermaid', link: '/examples/mermaid' }
+        { text: '项目概览', link: '/projects/' }, 
       ],
 
       socialLinks: [
