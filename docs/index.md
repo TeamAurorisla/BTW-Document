@@ -10,6 +10,9 @@ hero:
     - theme: brand
       text: 项目概览
       link: /projects/
+    - theme: alt
+      text: 环境部署
+      link: /development/env-deployment/
 
 features:
   - title: 策略导向的动态法术战斗

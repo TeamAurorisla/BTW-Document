@@ -30,8 +30,9 @@ export default withSidebar(
     themeConfig: {
       // https://vitepress.dev/reference/default-theme-config
       nav: [
-        { text: 'Home', link: '/' },
+        { text: '主页', link: '/' },
         { text: '项目概览', link: '/projects/' }, 
+        { text: '环境部署', link: '/development/env-deployment/' }
       ],
 
       socialLinks: [
