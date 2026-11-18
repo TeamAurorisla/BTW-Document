@@ -1,21 +1,22 @@
-name: Deploy VitePress site to Pages
+name: Check materials and build VitePress
 
 on:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: docs-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
 
 jobs:
   build:
+    permissions:
+      contents: read
+      pages: read
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -25,27 +26,47 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
       - name: Cache VitePress
         uses: actions/cache@v4
         with:
           path: .vitepress/cache
-          key: ${{ runner.os }}-vitepress-${{ hashFiles('docs/**', 'package-lock.json') }}
+          key: ${{ runner.os }}-vitepress-${{ hashFiles('docs/**', '.vitepress/**', 'scripts/**', 'data/**', 'package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-vitepress-
       - name: Setup Pages
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/configure-pages@v4
       - name: Install dependencies
         run: npm ci
+      - name: Check materials and references
+        run: npm run materials:check
+      - name: Test material tools
+        run: npm test
+      - name: Generate material change report
+        if: always()
+        run: npm run materials:report -- --output .report/materials-report.md
+      - name: Upload material change report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: materials-report
+          path: .report/materials-report.md
+          if-no-files-found: error
       - name: Build with VitePress
         run: npm run docs:build
       - name: Upload artifact
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v3
         with:
           path: .vitepress/dist
 
   deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

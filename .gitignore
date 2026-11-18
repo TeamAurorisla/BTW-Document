@@ -2,3 +2,9 @@ node_modules
 .vitepress/cache
 .vitepress/dist
 .codex-work/
+.report/
+.vitepress/generated/
+docs/library/magic-vanilla/arcane-materials/items/
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.sqlite-journal
