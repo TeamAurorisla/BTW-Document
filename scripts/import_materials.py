@@ -6,14 +6,14 @@ This is a one-time migration helper. Daily edits happen in the SQLite file.
 from __future__ import annotations
 
 import argparse
-import re
+import json
 import sqlite3
-import unicodedata
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+ID_MAP_PATH = Path(__file__).resolve().parents[1] / "data" / "arcane-material-legacy-ids.json"
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS arcane_materials (
   id TEXT NOT NULL PRIMARY KEY CHECK (length(trim(id)) > 0),
@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS arcane_materials (
   school TEXT NOT NULL,
   acquisition TEXT NOT NULL,
   notes TEXT,
-  family TEXT
+  family TEXT,
+  name_en TEXT CHECK (name_en IS NULL OR length(trim(name_en)) > 0)
 ) STRICT;
 """
 
@@ -62,21 +63,6 @@ def read_rows(path: Path) -> list[dict[str, str]]:
         return rows
 
 
-def make_id(name: str, used: set[str]) -> str:
-    value = unicodedata.normalize("NFKC", name).strip().lower()
-    value = re.sub(r"\s+", "-", value)
-    value = value.replace("/", "-")
-    value = re.sub(r"[^\w\-\u3400-\u9fff]", "-", value, flags=re.UNICODE)
-    value = re.sub(r"-+", "-", value).strip("-") or "material"
-    candidate = value
-    suffix = 2
-    while candidate in used:
-        candidate = f"{value}-{suffix}"
-        suffix += 1
-    used.add(candidate)
-    return candidate
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", default="library/奥法新生-材料设计手稿.xlsx")
@@ -86,13 +72,16 @@ def main() -> None:
     database = Path(args.database)
     if database.exists():
         parser.error(f"数据库已存在，不覆盖日常维护数据：{database}")
-    database.parent.mkdir(parents=True, exist_ok=True)
-
     rows = read_rows(source)
+    ids = json.loads(ID_MAP_PATH.read_text(encoding="utf-8"))
+    for row in rows:
+        if row["A"].replace("/", "-") not in ids:
+            parser.error(f"早期手稿中存在未分配 ID 的材料：{row['A']}")
+
+    database.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(database)
     connection.execute("PRAGMA foreign_keys = ON")
     connection.executescript(SCHEMA)
-    used: set[str] = set()
     for row in rows:
         connection.execute(
             """
@@ -102,7 +91,7 @@ def main() -> None:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                make_id(row["A"], used),
+                ids[row["A"].replace("/", "-")],
                 row["A"],
                 row["B"],
                 row["C"],

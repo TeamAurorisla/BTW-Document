@@ -4,9 +4,9 @@ import { DatabaseSync } from 'node:sqlite'
 import MarkdownIt from 'markdown-it'
 import { katex } from '@mdit/plugin-katex'
 import {
-  DATABASE_PATH, ROOT, GENERATED_ITEMS, GENERATED_DATA, FIELDS,
+  DATABASE_PATH, ROOT, GENERATED_ITEMS, GENERATED_DATA, FIELDS, LEGACY_MATERIAL_IDS,
   VALID_ORIGINS, VALID_CATEGORIES, readMaterialRows, splitTags,
-  safeRouteId, writeJson,
+  escapeHtml, safeRouteId, writeJson,
 } from './materials-lib.mjs'
 import { materialReferences } from './material-references.mjs'
 
@@ -37,7 +37,7 @@ export function validateDatabase(databasePath = DATABASE_PATH) {
     for (const field of ['id', 'name', 'origin', 'category', 'stage']) {
       if (typeof row[field] !== 'string' || !row[field].trim()) errors.push(`${label}: ${field} 不能为空`)
     }
-    if (typeof row.id !== 'string' || !/^[\p{L}\p{N}_-]+$/u.test(row.id)) errors.push(`${label}: ID 只允许文字、数字、下划线和短横线`)
+    if (typeof row.id !== 'string' || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/.test(row.id)) errors.push(`${label}: ID 必须为小写 snake_case，仅使用英文字母和数字，并以下划线分隔`)
     if (ids.has(row.id)) errors.push(`${label}: 重复 ID`)
     ids.add(row.id)
     const routeId = safeRouteId(row.id).toLowerCase()
@@ -58,6 +58,9 @@ export function validateDatabase(databasePath = DATABASE_PATH) {
     }
     for (const field of ['notes', 'family']) {
       if (row[field] !== null && typeof row[field] !== 'string') errors.push(`${label}: ${field} 必须为文本或 NULL`)
+    }
+    if (row.name_en !== null && (typeof row.name_en !== 'string' || !row.name_en.trim())) {
+      errors.push(`${label}: name_en 必须为非空文本或 NULL`)
     }
   }
   if (errors.length) throw new Error(errors.join('\n'))
@@ -104,6 +107,8 @@ function metadataText(value) {
   return String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('|', '\\|').replaceAll('\n', ' ')
 }
 
+const generatedMarker = '<!-- Generated from data/arcane_materials.sqlite. Edit the database. -->'
+
 export function generateMaterials(rows, references) {
   fs.mkdirSync(GENERATED_ITEMS, { recursive: true })
   const wanted = new Set()
@@ -114,8 +119,9 @@ export function generateMaterials(rows, references) {
     const backlinks = [...(references.get(row.id)?.keys() ?? [])]
     const content = [
       '---', `title: ${JSON.stringify(row.name)}`, 'aside: true', 'excludeFromSidebar: true', 'prev: false', 'next: false', '---', '',
-      '<!-- Generated from data/arcane_materials.sqlite. Edit the database. -->', '',
+      generatedMarker, '',
       '[返回材料列表](../)', '', `# ${metadataText(row.name)}`, '',
+      ...(row.name_en ? [`<p lang="en">${escapeHtml(row.name_en)}</p>`, ''] : []),
       '| 来源 | 类别 | 阶段 | 流派 |', '| --- | --- | --- | --- |',
       `| ${metadataText(row.origin)} | ${metadataText(row.category)} | ${metadataText(row.stage)} | ${metadataText(splitTags(row.school).join('、'))} |`, '',
       '## 描述', '', row.description || '暂未填写。', '',
@@ -132,11 +138,26 @@ export function generateMaterials(rows, references) {
     ].join('\n')
     fs.writeFileSync(path.join(GENERATED_ITEMS, filename), content, 'utf8')
   }
+
+  const materialsById = new Map(rows.map((row) => [row.id, row]))
+  for (const [oldId, currentId] of Object.entries(LEGACY_MATERIAL_IDS)) {
+    const material = materialsById.get(currentId)
+    if (!material) continue
+    const filename = `${oldId}.md`
+    const head = [['meta', { 'http-equiv': 'refresh', content: `0;url=./${currentId}.html` }]]
+    const content = [
+      '---', `title: ${JSON.stringify(material.name)}`, 'layout: page', 'excludeFromSidebar: true',
+      'search: false', `head: ${JSON.stringify(head)}`, '---', '', generatedMarker, '',
+      `[前往${metadataText(material.name)}的详情页](./${currentId}.md)`, '',
+    ].join('\n')
+    wanted.add(filename)
+    fs.writeFileSync(path.join(GENERATED_ITEMS, filename), content, 'utf8')
+  }
   // Only remove files emitted by this generator, never unrelated files.
   for (const filename of fs.readdirSync(GENERATED_ITEMS)) {
     if (!filename.endsWith('.md') || wanted.has(filename)) continue
     const filePath = path.join(GENERATED_ITEMS, filename)
-    if (fs.readFileSync(filePath, 'utf8').includes('<!-- Generated from data/arcane_materials.sqlite. Edit the database. -->')) fs.unlinkSync(filePath)
+    if (fs.readFileSync(filePath, 'utf8').includes(generatedMarker)) fs.unlinkSync(filePath)
   }
   writeJson(GENERATED_DATA, rows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN')).map((row) => ({
     ...row,

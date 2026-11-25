@@ -8,8 +8,9 @@ export const DATABASE_PATH = path.join(ROOT, 'data', 'arcane_materials.sqlite')
 export const GENERATED_ROOT = path.join(ROOT, 'docs', 'library', 'magic-vanilla', 'arcane-materials')
 export const GENERATED_ITEMS = path.join(GENERATED_ROOT, 'items')
 export const GENERATED_DATA = path.join(ROOT, '.vitepress', 'generated', 'materials.json')
+export const LEGACY_MATERIAL_IDS = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'arcane-material-legacy-ids.json'), 'utf8'))
 
-export const FIELDS = ['id', 'name', 'origin', 'category', 'description', 'uses', 'stage', 'school', 'acquisition', 'notes', 'family']
+export const FIELDS = ['id', 'name', 'origin', 'category', 'description', 'uses', 'stage', 'school', 'acquisition', 'notes', 'family', 'name_en']
 export const VALID_ORIGINS = new Set(['原版', '新增'])
 export const VALID_CATEGORIES = new Set(['原材料', '战利品', '加工品', '源质'])
 
@@ -33,10 +34,13 @@ export function escapeHtml(value) {
     .replaceAll('"', '&quot;')
 }
 
-export function readMaterialRows(databasePath = DATABASE_PATH) {
+export function readMaterialRows(databasePath = DATABASE_PATH, { allowMissingEnglishName = false } = {}) {
   const database = new DatabaseSync(databasePath, { readOnly: true })
   try {
-    return database.prepare(`SELECT ${FIELDS.join(', ')} FROM arcane_materials ORDER BY id`).all()
+    const fields = allowMissingEnglishName && !database.prepare('PRAGMA table_info(arcane_materials)').all().some((column) => column.name === 'name_en')
+      ? FIELDS.map((field) => field === 'name_en' ? 'NULL AS name_en' : field)
+      : FIELDS
+    return database.prepare(`SELECT ${fields.join(', ')} FROM arcane_materials ORDER BY id`).all()
   } finally {
     database.close()
   }

@@ -29,10 +29,15 @@ function plainText(text: string) {
     .replace(/<[^>]*>/g, '').replace(/[*_`#]/g, '')
 }
 
+function searchText(text: string) {
+  return text.toLocaleLowerCase().replaceAll('’', "'")
+}
+
 const filtered = computed(() => {
-  const query = filters.q.trim().toLocaleLowerCase()
+  const query = searchText(filters.q.trim())
   return materials.filter((material) => {
-    if (query && ![material.name, material.id, plainText(material.description)].some((value) => value.toLocaleLowerCase().includes(query))) return false
+    const searchFields = [material.name, material.name_en ?? '', material.id, plainText(material.description)]
+    if (query && !searchFields.some((value) => searchText(value).includes(query))) return false
     return dimensions.every(({ key }) => {
       if (!filters[key]) return true
       const value = material[key]
@@ -89,7 +94,7 @@ watch([filters, view, sortField, sortDirection], writeUrl, { deep: true })
   <section class="material-catalog" aria-label="材料索引">
     <div class="catalog-search">
       <label for="material-query">搜索材料</label>
-      <input id="material-query" v-model="filters.q" type="search" placeholder="名称、ID 或描述" autocomplete="off">
+      <input id="material-query" v-model="filters.q" type="search" placeholder="中英文名称、ID 或描述" autocomplete="off">
     </div>
 
     <div class="catalog-filters">
@@ -131,6 +136,7 @@ watch([filters, view, sortField, sortDirection], writeUrl, { deep: true })
       <a v-for="material in sorted" :key="material.id" :href="withBase(material.url)" class="material-card">
         <div class="card-meta"><span>{{ material.category }}</span><span>{{ stageLabel(material) }}</span></div>
         <h2>{{ material.name }}</h2>
+        <span v-if="material.name_en" class="material-name-en" lang="en">{{ material.name_en }}</span>
         <p class="card-description">{{ plainText(material.description) || '暂未填写描述。' }}</p>
         <div class="card-footer"><span>{{ material.school.join(' · ') }}</span><span>{{ material.origin }}</span></div>
       </a>
@@ -146,7 +152,10 @@ watch([filters, view, sortField, sortDirection], writeUrl, { deep: true })
         </tr></thead>
         <tbody>
           <tr v-for="material in sorted" :key="material.id">
-            <td><a :href="withBase(material.url)">{{ material.name }}</a></td>
+            <td>
+              <a :href="withBase(material.url)">{{ material.name }}</a>
+              <span v-if="material.name_en" class="material-name-en" lang="en">{{ material.name_en }}</span>
+            </td>
             <td>{{ material.origin }}</td><td>{{ material.category }}</td><td>{{ material.stage }}</td>
             <td>{{ material.school.join('、') }}</td><td>{{ material.uses.join('、') }}</td><td>{{ material.family || '—' }}</td>
           </tr>
@@ -177,6 +186,8 @@ watch([filters, view, sortField, sortDirection], writeUrl, { deep: true })
 .material-card:hover { border-color: var(--catalog-accent); background: var(--vp-c-bg-soft); }
 .card-meta, .card-footer { display: flex; justify-content: space-between; gap: 8px; color: var(--vp-c-text-2); font-size: 12px; line-height: 1.6; }
 .material-card h2 { margin: 10px 0 8px; padding: 0; border: 0; font-size: 18px; line-height: 1.5; font-weight: 650; }
+.material-name-en { display: block; color: var(--vp-c-text-2); font-size: 13px; line-height: 1.5; }
+.material-card .material-name-en { margin: -5px 0 8px; }
 .card-description { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin: 0 0 16px; min-height: 44px; color: var(--vp-c-text-2); font-size: 13px; line-height: 22px; }
 .card-footer { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--vp-c-divider); }
 .material-table-wrap { overflow-x: auto; }

@@ -14,7 +14,7 @@ title: 奥法新生材料维护
 
 | 字段 | 内容 |
 | --- | --- |
-| `id` | 稳定 ID，必填且唯一；支持文字、数字、下划线和短横线 |
+| `id` | 稳定 ID，必填且唯一。使用小写 `snake_case`，如 `ink_crystal`。原版材料沿用 Minecraft ID 的路径部分，如 `quartz`。 |
 | `name` | 显示名称，必填且唯一 |
 | `origin` | 原版、新增 |
 | `category` | 原材料、战利品、加工品、源质 |
@@ -32,7 +32,7 @@ title: 奥法新生材料维护
 
 ## 页面与引用
 
-描述、获取与配方、备注支持 Markdown 与材料引用，例如 [[arcane_materials:硫]]，也可以自定义显示为 [[arcane_materials:硫|硫晶]]。详情页同时展示同族材料，以及引用此材料的文档。
+描述、获取与配方、备注支持 Markdown 与材料引用，例如 [[arcane_materials:sulfur]]，也可以自定义显示为 [[arcane_materials:sulfur|硫晶]]。详情页同时展示同族材料，以及引用此材料的文档。旧中文详情页地址会跳转到新地址。
 
 配方保留在 `acquisition` ，目前是文本，将来计划实现 JSON 配方解析功能
 

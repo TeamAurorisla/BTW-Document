@@ -2,12 +2,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { execFileSync } from 'node:child_process'
-import { ROOT, FIELDS, normalizeTags, readMaterialRows } from './materials-lib.mjs'
+import { ROOT, FIELDS, LEGACY_MATERIAL_IDS, normalizeTags, readMaterialRows } from './materials-lib.mjs'
 
 const DATABASE_GIT_PATH = 'data/arcane_materials.sqlite'
 const LABELS = {
   id: 'ID', name: '名称', origin: '来源', category: '类别', description: '描述',
-  uses: '用途', stage: '阶段', school: '流派', acquisition: '获取与配方', notes: '备注', family: '族',
+  uses: '用途', stage: '阶段', school: '流派', acquisition: '获取与配方', notes: '备注', family: '族', name_en: '英文名',
 }
 
 function comparable(field, value) {
@@ -17,13 +17,22 @@ function comparable(field, value) {
 export function compareMaterials(beforeRows, afterRows) {
   const before = new Map(beforeRows.map((row) => [row.id, row]))
   const after = new Map(afterRows.map((row) => [row.id, row]))
-  const added = afterRows.filter((row) => !before.has(row.id))
-  const deleted = beforeRows.filter((row) => !after.has(row.id))
+  const migratedBefore = new Map()
+  for (const [oldId, currentId] of Object.entries(LEGACY_MATERIAL_IDS)) {
+    const old = before.get(oldId)
+    const current = after.get(currentId)
+    if (old && current && old.name === current.name && !before.has(currentId) && !after.has(oldId)) {
+      migratedBefore.set(currentId, old)
+    }
+  }
+  const migratedOldIds = new Set([...migratedBefore.values()].map((row) => row.id))
+  const added = afterRows.filter((row) => !before.has(row.id) && !migratedBefore.has(row.id))
+  const deleted = beforeRows.filter((row) => !after.has(row.id) && !migratedOldIds.has(row.id))
   const modified = []
   for (const row of afterRows) {
-    const old = before.get(row.id)
+    const old = before.get(row.id) ?? migratedBefore.get(row.id)
     if (!old) continue
-    const changes = FIELDS.filter((field) => field !== 'id' && comparable(field, old[field]) !== comparable(field, row[field]))
+    const changes = FIELDS.filter((field) => comparable(field, old[field]) !== comparable(field, row[field]))
       .map((field) => ({ field, before: old[field], after: row[field] }))
     if (changes.length) modified.push({ id: row.id, name: row.name, changes })
   }
@@ -75,7 +84,7 @@ export function rowsAtRevision(revision, temporaryDirectory, label, repositoryRo
   if (!exists) return []
   const filePath = path.join(temporaryDirectory, `${label}.sqlite`)
   fs.writeFileSync(filePath, git(['show', `${revision}:${DATABASE_GIT_PATH}`], { maxBuffer: 64 * 1024 * 1024, cwd: repositoryRoot }))
-  return readMaterialRows(filePath)
+  return readMaterialRows(filePath, { allowMissingEnglishName: true })
 }
 
 function eventRevisions() {
