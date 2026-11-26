@@ -1,5 +1,5 @@
 ---
-order: 8
+order: 9
 ---
 
 # 伤害类型
@@ -10,3 +10,5 @@ Spell Physical Damage（法术物理伤害）Spell Magical Damage（法术魔法
 法术物理伤害受到护甲值的影响，而法术魔法伤害则不受影响；此外，两者都不是投掷物。
 
 细分成不同的流派伤害类型。
+
+法术、魔弹的伤害及抗性公式见[施法与伤害结算](./combat-resolution.md)。
