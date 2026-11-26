@@ -12,7 +12,7 @@ order: 10
 | 法术类型、稀有度、规模、流派 | 分别描述法术的用途、稀有程度、基础费用和流派归属。见[法术类型与流派](./mechanics/types-and-schools.md)。 |
 | 流派属性 | 同一流派的多个法术可以共享的效果，例如灼烧。见[流派属性资料库](../../library/magic-vanilla/school-attributes/index.md)。 |
 | 法术精进 | 以材料和相应条件提升已解锁法术的等级。见[法术精进](./mechanics/mastery.md)。 |
-| 积势 | 战斗中累积的资源，影响大型法术的使用和效果。见[积势](./mechanics/momentum.md)。 |
+| 积势 | 战斗中累积的资源，影响史诗法术的使用和效果。见[积势](./mechanics/momentum.md)。 |
 | 法杖、魔弹、符文 | 法杖用于施法，也可发射基础魔弹，符文可以强化属性或改变魔弹效果。见[法杖](./staff/index.md)与[强化](./staff/enhancement.md)。 |
 | 法术强度、流派亲和、魔力修正、法术抗性 | 参与法术或魔弹伤害和受击的属性。见[施法与伤害结算](./mechanics/combat-resolution.md)。 |
 | 魔导效能 | 影响法杖施法的魔力消耗。见[法杖属性](./staff/attribute.md)。 |
